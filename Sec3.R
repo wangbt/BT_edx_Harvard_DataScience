@@ -190,7 +190,237 @@ str_detect(yes, pattern)
 str_detect(no, pattern)
 str_view(s,pattern)
 
+pattern <- "^[4-7]'\\d{1,2}\"$"
+sum(str_detect(problems,pattern))
+
+problems[c(2,10,11,12,15)] %>% str_view(pattern)
+
+# inspect examples of entries with problems
+str_subset(problems,"inches")
+str_subset(problems, "''")
+
+# replace or remove feet/inches words before matching
+pattern <- "^[4-7]'\\d{1,4}$"
+problems %>% 
+  str_replace("feet|ft|foot", "'") %>% #replace feet, ft,foot with '
+  str_replace("inches|in|''|\"","") %>% # remove all inches symbols
+  str_detect(pattern)%>%
+  sum()
+
+# R does not ignore whitespaces
+identical("Hi", "Hi ")
+
+#\\s represents whitespace
+pattern_2 <- "^[4-7]'\\s\\d{1,2}\"$"
+str_subset(problems,pattern_2)
+
+# * means 0 or more instances of a character
+yes <- c("AB", "A1B", "A11B", "A111B", "A1111B")
+no <- c("A2B", "A21B","A12B")
+str_detect(yes, "A1*B")
+str_detect(no, "A1*B")
+
+# test how *, ? and + differ
+yes <- c("AB", "A1B", "A11B", "A111B", "A1111B")
+data.frame(string = yes,
+           none_or_more = str_detect(yes, "A1*B"),
+           nore_or_once = str_detect(yes, "A1?B"),
+           once_or_more = str_detect(yes, "A1+B"))
 
 
+# update pattern by adding optional spaces before and after feet symbol
+pattern <- "^[4-7]\\s*'\\s*\\d{1,2}$"
+problems %>% 
+  str_replace("feet|ft|foot", "'") %>% # replace feet, ft, foot with ' 
+  str_replace("inches|in|''|\"", "") %>% # remove all inches symbols
+  str_detect(pattern) %>% 
+  sum()
+
+#####groups with regex#######
+pattern_without_groups <- "^[4-7],\\d*$"
+
+pattern_with_groups <-  "^([4-7]),(\\d*)$"
+
+yes <- c("5,9","5,11","6,","6,1")
+no <- c("5'9",",","2,8","6.1.1")
+s <- c(yes,no)
+
+# demonstrate the effect of groups
+str_detect(s,pattern_without_groups)
+str_detect(s,pattern_with_groups)
+
+
+# demonstrate difference between str_match and str_extract
+str_match(s,pattern_with_groups)
+str_match(s,pattern_without_groups)
+
+str_extract(s,pattern_with_groups)
+# str_extract(s,pattern_without_groups)
+
+
+
+# improve the pattern to recognize more events
+pattern_with_groups <-  "^([4-7]),(\\d*)$"
+yes <- c("5,9", "5,11", "6,", "6,1")
+no <- c("5'9", ",", "2,8", "6.1.1")
+s <- c(yes, no)
+str_replace(s, pattern_with_groups, "\\1'\\2")
+
+# final pattern
+pattern_with_groups <-"^([4-7])\\s*[,\\.\\s+]\\s*(\\d*)$"
+
+# combine stringr commands with the pipe
+str_subset(problems, pattern_with_groups) %>% head
+str_subset(problems, pattern_with_groups) %>% 
+  str_replace(pattern_with_groups, "\\1'\\2") %>% head
+
+
+#######Testing and Improving#######
+# function to detect entries with problems
+not_inches_or_cm <- function(x, smallest = 50, tallest = 84){
+  inches <- suppressWarnings(as.numeric(x))
+  ind <- !is.na(inches) &
+    ((inches >= smallest & inches <= tallest) |
+       (inches/2.54 >= smallest & inches/2.54 <= tallest))
+  !ind
+}# identify entries with problems
+
+
+problems <- reported_heights %>% 
+  filter(not_inches_or_cm(height)) %>%
+  .$height
+length(problems)
+
+converted <- problems %>% 
+  str_replace("feet|foot|ft", "'") %>% #convert feet symbols to '
+  str_replace("inches|in|''|\"", "") %>%  #remove inches symbols
+  str_replace("^([4-7])\\s*[,\\.\\s+]\\s*(\\d*)$", "\\1'\\2") ##change format
+
+# find proportion of entries that fit the pattern after reformatting
+pattern <- "^[4-7]\\s*'\\s*\\d{1,2}$"
+index <- str_detect(converted, pattern)
+mean(index)
+
+converted[!index]    # show problems
+
+
+
+# Assesment####
+# q2
+not_inches <- function(x, smallest = 50, tallest = 84) {
+  inches <- suppressWarnings(as.numeric(x))
+  ind <- is.na(inches) | inches < smallest | inches > tallest 
+  ind
+}
+
+not_inches(c(175))
+not_inches(c("5'8\""))
+not_inches(c(70))
+sum(not_inches(c(85)))
+
+# q4
+s <-   c("70", "5 ft" , "4'11" , "" ,".","Six feet")
+pattern <- "\\d|ft"
+
+str_view_all(s, pattern)
+
+# q5
+animals <- c("cat", "puppy", "Moose", "MONKEY")
+pattern <- "[a-z]"
+str_detect(animals, pattern)
+
+# q6
+animals <- c("cat", "puppy", "Moose", "MONKEY")
+pattern <- "[A-Z]$"
+str_detect(animals, pattern)
+
+# q7
+animals <- c("cat", "puppy", "Moose", "MONKEY")
+pattern <- "[a-z]{4,5}"
+str_detect(animals, pattern)
+
+# q8
+animals <- c("moose", "monkey", "meerkat", "mountain lion")
+pattern <- "mo*"
+pattern <- "mo?"
+pattern <- "mo+"
+pattern <- "moo*"
+
+
+str_detect(animals, pattern)
+
+# q9
+schools <-c("U. Kentucky","Univ New Hampshire","Univ. of Massachusetts", "University Georgia" ,"U California","California State University")
+schools_corr <- schools %>% 
+  str_replace("^Univ\\.?\\s|^U\\.?\\s", "University ") %>% 
+  str_replace("^University of |^University ", "University of ")
+final <- c("University of Kentucky","University of New Hampshire","University of Massachusetts","University of Georgia","University of California","California State University")
+# final
+identical (schools_corr , final)
+
+# q10
+problems <- c("5.3", "5,5", "6 1", "5 .11", "5, 12")
+pattern_with_groups <- "^([4-7])[,\\.](\\d*)$"
+str_replace(problems, pattern_with_groups, "\\1'\\2")
+
+# q11
+problems <- c("5.3", "5,5", "6 1", "5 .11", "5, 12")
+pattern_with_groups <- "^([4-7])[,\\.\\s](\\d*)$"
+str_replace(problems, pattern_with_groups, "\\1'\\2")
+
+# q12
+converted <- problems %>% 
+  str_replace("feet|foot|ft", "'") %>% 
+  str_replace("inches|in|''|\"", "") %>% 
+  str_replace("^([4-7])\\s*[,\\.\\s+]\\s*(\\d*)$", "\\1'\\2")
+
+pattern <- "^[4-7]\\s*'\\s*\\d{1,2}$"
+index <- str_detect(converted, pattern)
+converted[!index]
+
+# q13
+yes <- c("5 feet 7inches", "5 7")
+no <- c("5ft 9 inches", "5 ft 9 inches")
+s <- c(yes, no)
+
+converted <- s %>%
+# str_replace(     "feet|foot|ft"     , "'") %>% 
+  str_replace("\\s*(feet|foot|ft)\\s*", "'") %>% 
+  
+# str_replace(     "inches|in|''|\""     , "") %>%
+  str_replace("\\s*(inches|in|''|\")\\s*", "") %>% 
+  
+  str_replace("^([4-7])\\s*[,\\.\\s+]\\s*(\\d*)$", "\\1'\\2")
+
+pattern <- "^[4-7]\\s*'\\s*\\d{1,2}$"
+str_detect(converted, pattern)
+
+
+# Sec3.3 Separate with regex####
+# first example - normally formatted heights
+s <- c("5'10", "6'1")
+tab <- data.frame(x = s)
+
+# the separate and extract functions behave similarly
+tab %>% separate(x, c("feet", "inches"), sep = "'")
+tab %>% extract(x, c("feet", "inches"), regex = "(\\d)'(\\d{1,2})")
+
+# second example - some heights with unusual formats
+s <- c("5'10", "6'1\"","5'8inches")
+tab <- data.frame(x = s)
+
+# separate fails because it leaves in extra characters, but extract keeps only the digits because of regex groups
+tab %>% separate(x, c("feet","inches"), sep = "'", fill = "right")
+tab %>% extract(x, c("feet", "inches"), regex = "(\\d)'(\\d{1,2})")
+
+
+yes <- c("5", "6", "5")
+no <- c("5'", "5''", "5'4")
+s <- c(yes, no)
+str_replace(s, "^([4-7])$", "\\1'0")
+
+str_replace(s, "^([56])'?$", "\\1'0")
+
+# str_detect(s, "^([56])'?$")
 
 
