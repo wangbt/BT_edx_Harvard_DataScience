@@ -554,7 +554,7 @@ mean(sdf[1:19, 4])
 # calculate the mean of deaths in 2017 column after hurricane (sept 20-30)
 mean(sdf[20:30, 4])
 
-# Keybook
+# Key book
 tab <- s %>% 
   as_data_frame() %>%
   setNames(c("day",header)) %>%
