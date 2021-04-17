@@ -102,6 +102,8 @@ galton_heights %>%
 rho <- mean(scale(x)*scale(y))
 galton_heights %>% summarize(r = cor(father, son)) %>% pull(r)
 
+# scale(c(1,2,2.5))
+
 # Sample Correlation is a Random Variable
 # compute sample correlation
 R <- sample_n(galton_heights, 25, replace = TRUE) %>%
@@ -144,6 +146,135 @@ Teams %>% filter(yearID %in%  1961:2001) %>%
   # summarize(r = cor(W_per_game,E_per_game))
   summarize(r = cor(X2B_per_game, X3B_per_game))
 
+
 # sec 1.3####
+# number of fathers with height 72 or 72.5 inches
+sum(galton_heights$father == 72)
+sum(galton_heights$father == 72.5)
+
+# predicted height of a son with a 72 inch tall father
+conditional_avg <- galton_heights %>%
+  filter(round(father) == 72) %>%
+  summarize(avg = mean(son)) %>%
+  pull(avg)
+conditional_avg
+
+# stratify fathers' heights to make a boxplot of son heights
+galton_heights %>% mutate(father_strata = factor(round(father))) %>%
+  ggplot(aes(father_strata, son)) +
+  geom_boxplot() +
+  geom_point()
+
+# center of each boxplot
+galton_heights %>%
+  mutate(father = round(father)) %>%
+  group_by(father) %>%
+  summarize(son_conditional_avg = mean(son)) %>%
+  ggplot(aes(father, son_conditional_avg)) +
+  geom_point()
+
+# plot the standardized heights against each other, 
+# son versus father, with a line that# has a slope 
+# equal to the correlation.
+
+r_1 <- galton_heights %>% summarize(r = cor(father,son)) %>% .$r
+
+galton_heights %>%
+  mutate(father = round(father)) %>%
+  group_by(father)%>%
+  summarize(son = mean(son)) %>%
+  mutate(z_father = scale(father),z_son = scale(son)) %>%
+  ggplot(aes(z_father,z_son)) +
+  geom_point()+
+  geom_abline(intercept = 0, slope = r)
+
+
+
+# calculate values to plot regression line on original data
+mu_x <- mean(galton_heights$father)
+mu_y <- mean(galton_heights$son)
+s_x <- sd(galton_heights$father)
+s_y <- sd(galton_heights$son)
+r <- cor(galton_heights$father, galton_heights$son)
+m <- r * s_y / s_x
+b <- mu_y - m*mu_x
+# identical(r,r_1)
+
+# add regression line to plot
+galton_heights %>%
+  ggplot(aes(father, son)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = b, slope = m)
+
+# plot in standard units
+galton_heights %>%
+  ggplot (aes(scale(father),scale(son))) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = 0, slope = r)
+  
+
+# facet plot with z
+galton_heights %>%
+  mutate(z_father = round((father - mean(father)) / sd(father))) %>%
+  filter(z_father %in% -2:2) %>%
+  ggplot() +  
+  stat_qq(aes(sample = son)) +
+  facet_wrap( ~ z_father)
+
+
+# compute a regression line to predict the son's height from the father's height
+mu_x <- mean(galton_heights$father)
+mu_y <- mean(galton_heights$son)
+s_x <- sd(galton_heights$father)
+s_y <- sd(galton_heights$son)
+r <- cor(galton_heights$father, galton_heights$son)
+m_1 <-  r * s_y / s_x
+b_1 <- mu_y - m_1*mu_x
+
+# compute a regression line to predict the father's height from the son's height
+m_2 <-  r * s_x / s_y
+b_2 <- mu_x - m_2*mu_y
+
+data.frame(m = c(m_1 , m_2),
+          b = c(b_1,b_2))
+
+# cor(galton_heights$son, galton_heights$father)
+
+# Assessment 1.3####
+# q8 mean sd of mother and daughter, and correlation
+set.seed(1989) #if you are using R 3.5 or earlier
+set.seed(1989, sample.kind="Rounding") #if you are using R 3.6 or later
+library(HistData)
+data("GaltonFamilies")
+
+female_heights <- GaltonFamilies%>%     
+  filter(gender == "female") %>%     
+  group_by(family) %>%     
+  sample_n(1) %>%     
+  ungroup() %>%     
+  select(mother, childHeight) %>%     
+  rename(daughter = childHeight)
+
+mu_mother <- mean(female_heights$mother)
+mu_daughter <- mean(female_heights$daughter)
+s_mother <- sd(female_heights$mother)
+s_daughter <- sd(female_heights$daughter)
+r_f <- cor(female_heights$mother,female_heights$daughter)
+
+# q9 slope and intercept, mother hight increas 1 inch,daughter increas how much.
+m_f <- r_f*s_daughter/s_mother
+b_f <- mu_daughter - m_f*mu_mother
+r_f*s_daughter/s_mother
+
+# q10 What percent of the variability in daughter heights is explained by the 
+# mother's height?
+r_f^2*100
+
+# q11 mother is 60 inch high, what is the conditional expected value of 
+# daughter's height given mother's height
+x <- 60
+m_f * x + b_f
+
+
 
 
