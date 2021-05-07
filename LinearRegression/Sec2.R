@@ -1,5 +1,15 @@
-# sec2.1 introduction to linear models####
+# Library used 
 
+library(tidyverse)
+library(Lahman)
+library(HistData)
+library(broom)
+library(gridExtra)
+library(reshape2)
+library(lpSolve)
+library(lubridate)
+library(dslabs)
+# sec2.1 introduction to linear models####
 # find regression line for predicting runs from BBs
 library(tidyverse)
 library(Lahman)
@@ -480,12 +490,15 @@ dat %>%
   group_by(HR) %>% 
   do(get_slope)
 
-# b TRUE  This will create a tibble with four columns: 
+# b TRUE  
+# This will create a tibble with four columns: 
 # HR, slope, se, and pvalue for each level of HR.
 dat %>% 
-  group_by(HR) %>% # If you forget group_by(), then the results will be a model on the data as a whole, rather than on the data stratified by home runs.
+  group_by(HR) %>% # If you forget group_by(), then the results will be 
+  # a model on the data as a whole, rather than on the data stratified by home runs.
   do(get_slope(.))# The data frame must be passed to get_slope() using (.)
-# If you name the results of the do() command such as in the code do(slope = get_slope(.)), that will save all results in a single column called slope
+# If you name the results of the do() command such as in the code 
+# do(slope = get_slope(.)), that will save all results in a single column called slope
 
 
 # c
@@ -548,7 +561,7 @@ galton %>%
   group_by(pair)  %>%
   summarize( n= n())
 
-# q9 find the stongest corelation
+# q9 find the strongest correlation
 galton %>%
   group_by(pair)  %>%
   summarize(cor = cor(parentHeight,childHeight)) %>%
@@ -734,7 +747,8 @@ our_team <- players %>%
   arrange(desc(R_hat))
 our_team %>% select(nameFirst, nameLast, POS, salary, R_hat)
 
-# We note that these players all have above average BB and HR rates while the same is not true for singles.
+# We note that these players all have above average BB and HR rates while 
+# the same is not true for singles.
 my_scale <- function(x) (x - median(x))/mad(x) # create myyscale function
 
 players %>% mutate(BB = my_scale(BB), 
@@ -750,7 +764,8 @@ players %>% mutate(BB = my_scale(BB),
 
 
 # On Base Plus Slugging (OPS)
-# The code to create a table with player ID, their names, and their most played position:
+# The code to create a table with player ID, their names, and their 
+# most played position:
 library(Lahman)
 playerInfo <- Fielding %>%
   group_by(playerID) %>%
@@ -760,7 +775,8 @@ playerInfo <- Fielding %>%
   left_join(Master, by="playerID") %>%
   select(playerID, nameFirst, nameLast, POS)
 
-# The code to create a table with only the ROY award winners and add their batting statistics:
+# The code to create a table with only the ROY award winners and add 
+# their batting statistics:
 ROY <- AwardsPlayers %>%
   filter(awardID == "Rookie of the Year") %>%
   left_join(playerInfo, by="playerID") %>%
@@ -769,7 +785,8 @@ ROY <- AwardsPlayers %>%
   mutate(AVG = H/AB) %>%
   filter(POS != "P")
 
-#The code to keep only the rookie and sophomore seasons and remove players who did not play sophomore seasons:
+#The code to keep only the rookie and sophomore seasons and remove players 
+# who did not play sophomore seasons:
 ROY <- ROY %>%
   filter(yearID == rookie_year | yearID == rookie_year+1) %>%
   group_by(playerID) %>%
@@ -778,14 +795,17 @@ ROY <- ROY %>%
   ungroup %>%
   select(playerID, rookie_year, rookie, nameFirst, nameLast, AVG)
 
-#The code to use the spread function to have one column for the rookie and sophomore years batting averages:
+#The code to use the spread function to have one column for the rookie 
+# and sophomore years batting averages:
 ROY <- ROY %>% spread(rookie, AVG) %>% arrange(desc(rookie))
 ROY
 
-#The code to calculate the proportion of players who have a lower batting average their sophomore year:
+#The code to calculate the proportion of players who have a lower batting 
+# average their sophomore year:
 mean(ROY$sophomore - ROY$rookie <= 0)
 
-#The code to do the similar analysis on all players that played the 2013 and 2014 seasons and batted more than 130 times (minimum to win Rookie of the Year):
+#The code to do the similar analysis on all players that played the 
+# 2013 and 2014 seasons and batted more than 130 times (minimum to win Rookie of the Year):
 two_years <- Batting %>%
   filter(yearID %in% 2013:2014) %>%
   group_by(playerID, yearID) %>%
@@ -811,7 +831,8 @@ summarize(two_years, cor(`2013`,`2014`))
 
 
 # Measurement Error Models
-# The code to use dslabs function rfalling_object to generate simulations of dropping balls:
+# The code to use dslabs function rfalling_object to generate simulations of 
+# dropping balls:
 library(dslabs)
 falling_object <- rfalling_object()
 
@@ -836,3 +857,197 @@ augment(fit) %>%
 
  # tidy(augment(fit) )
 tidy (fit, conf.int = TRUE)
+
+
+# assessment 
+team_a <- data_frame(BB = 2, singles = 4,doubles = 1, triples = 0,HR = 1)
+r_team_a <- predict(fit, data.frame(team_a))
+
+team_b <- data_frame(BB = 1, singles = 6,doubles = 2, triples = 1,HR = 0)
+r_team_b <- predict(fit, data.frame(team_b))
+
+c(r_team_a ,  r_team_b)
+
+which.max (r_team_a ,  r_team_b)
+
+# q9
+R1971 <- Teams %>%
+  filter(yearID == 1971) %>%
+  lm(R ~ BB + HR, data = .) %>%
+  tidy()
+
+# q10
+Teams %>%
+  filter(yearID %in%  1961:2018) %>%
+  group_by( yearID) %>%
+  do(tidy(lm(R ~ BB + HR, data = .))) %>%
+  ungroup() %>%
+  # augment() %>%
+  filter (term == "BB") %>%
+  ggplot(aes(yearID, estimate)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+  #geom_line(aes(yearID, .fitted))
+  #geom_smooth()
+  
+# Key, same as my code, just easier to read for next question
+res <- Teams %>%
+  filter(yearID %in% 1961:2018) %>%
+  group_by(yearID) %>%
+  do(tidy(lm(R ~ BB + HR, data = .))) %>%
+  ungroup() 
+res %>%
+  filter(term == "BB") %>%
+  ggplot(aes(yearID, estimate)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+# q11
+res %>%
+  filter(term == "BB") %>%
+  lm(estimate ~ yearID,.) %>%
+  summary()
+    
+#   
+# q11 <- Teams %>%
+#   filter(yearID %in% 1961:2018) %>%
+#   group_by(yearID) %>%
+#   do(tidy(lm(BB ~yearID)))
+
+# Key
+res %>%
+  filter(term == "BB") %>%
+  lm(estimate ~ yearID, data = .) %>%
+  tidy() %>%
+  filter(term == "yearID") %>%
+  pull(estimate)
+
+res %>%
+  filter(term == "BB") %>%
+  lm(estimate ~ yearID, data = .) %>%
+  tidy() %>%
+  filter(term == "yearID") %>%
+  pull(p.value)
+
+# Sec 2 Final Assessment ####
+
+library(tidyverse)
+library(broom)
+library(Lahman)
+
+
+Teams_small <- Teams %>% 
+  filter(yearID %in% 1961:2001) %>% 
+  mutate(avg_attendance = attendance/G,
+         R_per_game = R/G,
+         HR_per_game = HR/G)
+
+# q1
+q1a <- Teams_small %>% 
+  mutate(R = R/G, 
+         HR = HR/G) %>%
+lm(avg_attendance~R, data = .) %>%
+  tidy(.,conf.int=TRUE)
+
+Teams_small <- Teams %>% 
+  filter(yearID %in% 1961:2001) %>% 
+  mutate(avg_attendance = attendance/G, 
+         R = R/G,
+         HR = HR/G)  %>% 
+  # lm(avg_attendance~R, data = .) %>%
+  lm(avg_attendance ~ HR, data = .) %>%
+  tidy( conf.int = TRUE)
+
+# key
+# find regression line predicting attendance from R and take slope
+Teams_small %>% 
+  mutate(R_per_game = R/G, 
+         ) %>% 
+  lm(avg_attendance ~ R_per_game, data = .) %>% 
+  .$coef %>%
+  .[2]
+
+Teams_small %>% 
+  mutate(HR_per_game = HR/G) %>% 
+  lm(avg_attendance ~ HR_per_game, data = .) %>% 
+  .$coef %>%
+  .[2]
+
+# 1b
+Teams_small %>% 
+  lm(avg_attendance ~ W, data = .) %>% 
+  .$coef #%>%
+  #.[2]
+
+# 1c
+Teams_small %>% 
+  #group_by(yearID) %>%
+  lm(avg_attendance ~ yearID,data = .) %>%
+ #do(tidy(lm(avg_attendance ~ yearID,data = .))) %>%
+  .$coef %>%
+  .[2]
+
+# q2
+Teams_small %>% 
+  summarize( cor(W,R_per_game), cor(W, HR_per_game))
+
+# q3a
+# stratify by wins
+
+Teams_small %>% 
+  mutate (win_strata = round(W /10,0)) %>%
+  filter (  win_strata > 5 & win_strata < 10 ) %>%
+  summarize (sum( win_strata == 8 ))
+
+#keyy
+dat <- Teams_small %>%
+  mutate(W_strata = round(W/10)) %>%
+  filter(W_strata >= 5 & W_strata <= 10)
+
+sum(dat$W_strata == 8)
+
+#q3b
+dat %>% 
+  group_by(W_strata) %>%
+  # calculate slope of regression line after stratifying by R per game
+  # summarize(R_slop = cor (R_per_game, avg_attendance)*sd(avg_attendance)/sd(R_per_game))
+  # calculate slope of regression line after stratifying by HR per game
+  summarize(HR_slop = cor (HR_per_game, avg_attendance)*sd(avg_attendance)/sd(HR_per_game))
+
+  
+  # make the R_per_game vs avg_attendance plot 
+  # ggplot (aes(R_per_game, avg_attendance)) +
+  # geom_point (alpha = 0.5)+
+  # geom_smooth (method = "lm") +
+  # facet_wrap (~ W_strata)
+  
+  # make the HR_per_game vs avg_attendance plot 
+
+ggplot (aes(HR_per_game, avg_attendance)) +
+geom_point (alpha = 0.5)+
+geom_smooth (method = "lm") +
+facet_wrap (~ W_strata)
+
+# q4
+# fit multivariate regression
+fit <- Teams_small %>%
+  lm(avg_attendance ~ R_per_game + HR_per_game + W +  yearID , data = .)
+tidy(fit)
+
+# q5
+q5 <- data_frame(R_per_game = 5,  HR_per_game= 1.2, W = 80,  yearID =1960 )
+ predict(fit, data.frame(q5))
+
+# key 
+ predict(fit, data.frame(R_per_game = 5, HR_per_game = 1.2, W = 80, yearID = 2002))
+ predict(fit, data.frame(R_per_game = 5, HR_per_game = 1.2, W = 80, yearID = 1960))
+ 
+# q6
+ avg_2002 <- Teams %>% 
+   filter(yearID == 2002) %>% mutate(avg_attendance = attendance/G, R_per_game = R/G, HR_per_game = HR/G)
+ 
+ predicted_values<- predict(fit, avg_2002, se.fit = TRUE)
+ 
+ cor(predicted_values$fit, avg_2002$avg_attendance)
+
+
