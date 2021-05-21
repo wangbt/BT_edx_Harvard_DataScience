@@ -118,8 +118,7 @@ admissions %>%
   geom_bar(stat = "identity", position = "stack")
 
 # condition on major and then look at differences
-admissions %>% 
-  ggplot(aes(major, admitted, col = gender, size = applicants)) + geom_point()
+admissions %>% ggplot(aes(major, admitted, col = gender, size = applicants)) + geom_point()
 
 # average difference by major
 admissions %>%  group_by(gender) %>% summarize(average = mean(admitted))
