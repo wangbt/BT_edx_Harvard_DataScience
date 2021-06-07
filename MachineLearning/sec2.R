@@ -419,3 +419,93 @@ mean(disease)
 
 mean(test[disease==0])
 mean(test[disease==1])
+
+#mean(test[disease==1])*mean(disease) + mean(test[disease==0])*(1-mean(disease))
+
+# q2 what is the probability that a test is positive 
+mean(test)
+
+# q3 what is the probability that an individual 
+# has the disease if the test is negative
+
+(1-mean(test[disease==1])) * mean(disease) / (1-mean(test))
+# key
+mean(disease[test==0])
+
+# q4 waht is the probability that you 
+# have the disease if the test is positive
+mean(disease[test == 1])
+mean(disease[test==1]==TRUE)
+# q5
+# Compare the prevalence of disease in people who 
+# test positive to the overall prevalence of disease.
+
+# If a patient's test is positive, by how many times does 
+# that increase their risk of having the disease?
+
+# (First calculate the probability of having the disease 
+# given a positive test, then divide by the probability 
+# of having the disease.)
+mean(disease[test == 1])/mean(disease)
+
+# Q6
+# compute conditional probabilities for being male in the heights dataset.
+library(dslabs)
+data("heights")
+# MISSING CODE
+heights %>% 
+  mutate(height = round(height)) %>%
+  group_by(height) %>%
+  summarize(p = mean(sex == "Male")) %>%
+
+qplot(height, p, data =.)
+
+# q7
+
+ps <- seq(0, 1, 0.1)
+heights %>% 
+  # mutate(g = cut(male, quantile(height, ps), include.lowest = TRUE)) %>%
+  mutate(g = cut(height, quantile(height, ps), include.lowest = TRUE)) %>%
+  # mutate(g = cut(female, quantile(height, ps), include.lowest = TRUE)) %>%
+  # mutate(g = cut(height, quantile(height, ps))) %>%
+  group_by(g) %>%
+  summarize(p = mean(sex == "Male"), height = mean(height)) %>%
+  qplot(height, p, data =.)
+
+# q8
+# You can generate data from a bivariate normal distrubution
+Sigma <- 9*matrix(c(1,0.5,0.5,1), 2, 2)
+dat <- MASS::mvrnorm(n = 10000, c(69, 69), Sigma) %>%
+  data.frame() %>% setNames(c("x", "y"))
+
+ps <- seq(0, 1, 0.1)
+dat %>% 
+  # MISSING CODE
+  
+  # A
+  mutate(g = cut(x, quantile(x, ps), include.lowest = TRUE)) %>%
+  group_by(g) %>%
+  summarize(y = mean(y), x = mean(x)) %>%
+  
+  # # B
+  # mutate(g = cut(x, quantile(x, ps))) %>%
+  # group_by(g) %>%
+  # summarize(y = mean(y), x = mean(x)) %>%
+  # 
+  # # c
+  # mutate(g = cut(x, quantile(x, ps), include.lowest = TRUE)) %>%
+  # summarize(y = mean(y), x = mean(x)) %>%
+  # 
+  # # D
+  # mutate(g = cut(x, quantile(x, ps), include.lowest = TRUE)) %>%
+  # group_by(g) %>%
+  # summarize(y =(y), x =(x)) %>%
+  
+  
+  qplot(x, y, data =.)
+
+
+
+
+
+
