@@ -260,8 +260,8 @@ heights %>%
 range(p_hat)
 
 # fit logistic regression model
-glm_fit <- train_set %>% 
-  mutate(y = as.numeric(sex == "Female")) %>%
+glm_fit <- train_set %>%  # use train set 
+  mutate(y = as.numeric(sex == "Female")) %>%  #
   glm(y ~ height, data=., family = "binomial")
 
 p_hat_logit <- predict(glm_fit, newdata = test_set, type = "response")
@@ -350,7 +350,8 @@ mnist_27$true_p %>%
 
 
 
-# Comprehension Check ####
+# Comprehension Check: Logistic Regression ####
+# Q1
 # set.seed(2) #if you are using R 3.5 or earlier
 set.seed(2, sample.kind="Rounding") #if you are using R 3.6 or later
 make_data <- function(n = 1000, p = 0.5, 
@@ -369,35 +370,31 @@ make_data <- function(n = 1000, p = 0.5,
 }
 dat <- make_data()
 
+dat$train %>% ggplot(aes(x, color = y)) + geom_density()
 
 
-data("heights")
-y <- heights$height
-# set.seed(2) #if you are using R 3.5 or earlier
-# set.seed(2, sample.kind = "Rounding") #if you are using R 3.6 or later
-set.seed(1, sample.kind = "Rounding") #if you are using R 3.6 or later
 
-test_index <- createDataPartition(y, times = 1, p = 0.5, list = FALSE)
-train_set <- heights %>% slice(-test_index)
-test_set <- heights %>% slice(test_index)
-train_set %>% 
-  filter(round(height)==66) %>%
-  summarize(y_hat = mean(sex=="Female"))
-heights %>% 
-  mutate(x = round(height)) %>%
-  group_by(x) %>%
-  filter(n() >= 10) %>%
-  summarize(prop = mean(sex == "Female")) %>%
-  ggplot(aes(x, prop)) +
-  geom_point()
-lm_fit <- mutate(train_set, y = as.numeric(sex == "Female")) %>% lm(y ~ height, data = .)
-p_hat <- predict(lm_fit, test_set)
-y_hat <- ifelse(p_hat > 0.5, "Female", "Male") %>% factor()
-confusionMatrix(y_hat, test_set$sex)$overall["Accuracy"]
-
-
-set.seed(1) #if you are using R 3.5 or earlier
+#set.seed(1) #if you are using R 3.5 or earlier
 set.seed(1, sample.kind="Rounding") #if you are using R 3.6 or later
+
+delta <- seq(0, 3, len=25)
+
+res <- sapply(delta, function(d){
+  temp <- make_data(mu_1 = d)
+  #temp <- make_data(mu_1 = 1.5)
+  glm_fit <- temp$train %>% glm(y ~ x , data = ., family = "binomial")
+  p_hat_logit <- predict(glm_fit, newdata = temp$test,type = "response")
+  y_hat_logit <- ifelse(p_hat_logit > 0.5, 1,0) %>% factor
+  confusionMatrix(y_hat_logit, temp$test$y)$overall["Accuracy"]
+  #mean(y_hat_logit == temp$test$y)
+})
+
+qplot(delta,res)
+
+
+
+# key
+set.seed(1, sample.kind="Rounding")
 delta <- seq(0, 3, len = 25)
 res <- sapply(delta, function(d){
   dat <- make_data(mu_1 = d)
@@ -406,3 +403,36 @@ res <- sapply(delta, function(d){
   mean(y_hat_glm == dat$test$y)
 })
 qplot(delta, res)
+
+
+# Introduction to Smoothing
+data("polls_2008")
+qplot(day, margin, data = polls_2008)
+
+
+# Bin smoothing and Kernels 
+# bin smoothers
+span <- 7 
+fit <- with(polls_2008,ksmooth(day, margin, x.points = day, kernel="box", bandwidth =span))
+polls_2008 %>% mutate(smooth = fit$y) %>%
+  ggplot(aes(day, margin)) +
+  geom_point(size = 3, alpha = .5, color = "grey") + 
+  geom_line(aes(day, smooth), color="red")
+
+# kernel
+span <- 7
+fit <- with(polls_2008, ksmooth(day, margin,  x.points = day, kernel="normal", bandwidth = span))
+polls_2008 %>% mutate(smooth = fit$y) %>%
+  ggplot(aes(day, margin)) +
+  geom_point(size = 3, alpha = .5, color = "grey") + 
+  geom_line(aes(day, smooth), color="red")
+
+
+# Local Weighted Regression (loess)
+
+
+
+
+
+
+
